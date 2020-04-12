@@ -2,8 +2,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-/**
- * Minoe Generator class: Generates minoes and stores shapes indexes and rotation indexes as list
+/** Minoe Generator class: Generates minoes and stores shapes indexes and rotation indexes as list
+ *
  */
 public class MinoeGenerator {
     private List<Integer> shapeIndexList, rotationIndexList;

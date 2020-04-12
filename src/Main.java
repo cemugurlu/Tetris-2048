@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import javax.swing.*;
+
 
 /**
  * @author Cem Uğurlu, Uras Felamur
@@ -15,15 +17,18 @@ import java.util.List;
 public class Main {
     public static void main(String[] args) {
         // set the size of the drawing canvas
-        final Color backgroundColor = new Color(206, 195, 181);
+        final Color backgroundColor = new Color(206, 195, 181);    // Initializing the colors with rgb values
         final Color gridColor = new Color(185, 171, 158);
         final Color menuColor = new Color(167, 160, 151);
-        final Color seperatorColor = new Color(132, 122, 113);
-        int heightScale = 18;
-        int widthScale = 12;
+        final Color whiteNumberColor = new Color(249, 246, 242);
+        final Color darkNumberColor = new Color(127, 111, 98);
+        final Color frameColor = new Color(132, 122, 113);
+        int heightScale = 12;
+        int widthScale = 8;
         Block[][] incomingTetrominoAllRotations = new Block[][]{};
         List<Block> occupiedBlocks = new ArrayList<>();
         boolean doSendNewBlock = true;
+        boolean playing = true;
         int score = 0;
         int rotationIndex = 0;
         int shapeIndex;
@@ -32,7 +37,7 @@ public class Main {
         initCanvas(heightScale, widthScale);
         
         
-        while (true) {  // The loop that executes all the methods and the drawings
+        while (playing) {  // The loop that executes all the methods and the drawings
             if (StdDraw.hasNextKeyTyped()) {
                 char charA = StdDraw.nextKeyTyped();
                 rotationIndex = handleUserInput(incomingTetrominoAllRotations, occupiedBlocks, rotationIndex, charA, widthScale);
@@ -52,59 +57,84 @@ public class Main {
             
             drawOccupiedBlocks(occupiedBlocks);
             
-            drawIncomingTetromino(incomingTetrominoAllRotations[rotationIndex]);
+            drawIncomingTetromino(incomingTetrominoAllRotations[rotationIndex], whiteNumberColor, darkNumberColor);
             
-            drawGrid(heightScale, widthScale, gridColor);
-            drawMenuAndSeperator(score, menuColor, seperatorColor, widthScale, heightScale);
-            drawNextTetromino(widthScale, Tetrominoes.tetrominoes[minoeGenerator.getIncomingShapeIndex()][minoeGenerator.getIncomingRotationIndex()]);
+            drawGrid(heightScale, widthScale, gridColor, frameColor);
+            drawMenuAndSeparator(score, menuColor, widthScale, heightScale);
+            drawNextTetromino(widthScale, Tetrominoes.tetrominoes[minoeGenerator.getIncomingShapeIndex()][minoeGenerator.getIncomingRotationIndex()], darkNumberColor, gridColor);
             
             if (willTetrominoPassBottomBorder(incomingTetrominoAllRotations[rotationIndex]) || hasBlockToBottomOf(incomingTetrominoAllRotations[rotationIndex], occupiedBlocks)) {
-                saveOccupiedBlocks(occupiedBlocks, incomingTetrominoAllRotations[rotationIndex]);
+                playing = saveOccupiedBlocksAndDecideTheFateOfTheGame(occupiedBlocks, incomingTetrominoAllRotations[rotationIndex], heightScale);
                 score = mergeAppropriateBlocksAndCalculateScore(occupiedBlocks, widthScale, score);
-                
-                // System.out.println("y when saving: " + incomingTetrominoAllRotations[rotationIndex][0].y);
-                
-                
-                System.out.println("x when saving: " + incomingTetrominoAllRotations[rotationIndex][0].x);
-               
-               
-                /*for (Block occupiedBlock : occupiedBlocks) {
-                    if (occupiedBlock.y >= heightScale) {
-                        System.out.println("heights " +heightScale);
-                        System.out.println("game over");
-                    }
-               
-               
-               
-                }*/
-                
-                
+                if (checkAndDeleteFullRows(occupiedBlocks, widthScale, heightScale, score))
+                    fallDown(occupiedBlocks);
                 doSendNewBlock = true;
             } else
                 for (Block[] blocks : incomingTetrominoAllRotations)
                     for (Block block : blocks)
                         block.y--;
             
-            
             StdDraw.show();
             
-            StdDraw.pause(500); // pause for 200 ms (double buffering)
+            StdDraw.pause(100); // pause for 200 ms (double buffering)
             
+            if (!playing) { // If playing is not available, it will prompt the message
+                JOptionPane.showMessageDialog(null,
+                        "GAME OVER",
+                        "Warning",
+                        JOptionPane.INFORMATION_MESSAGE);
+            }
             
         }
     }
     
     /**
+     * checkAndDeleteFullRows: Checks and deletes the rows
+     *
+     * @param occupiedBlocks: The blocks after the tetrominoes has landed on the bottom or above of some block
+     */
+    private static boolean checkAndDeleteFullRows(List<Block> occupiedBlocks, int widthScale, int heightScale, int score) {
+        boolean didIWork = false;
+        for (int y = 0; y < heightScale; y++) {
+            List<Block> blocksToRemove = new ArrayList<>();
+            for (int x = 0; x < widthScale; x++)
+                for (Block occupiedBlock : occupiedBlocks)
+                    if (occupiedBlock.y == y) {
+                        blocksToRemove.add(occupiedBlock);
+                    }
+            
+            if (blocksToRemove.size() == widthScale) {
+                occupiedBlocks.removeAll(blocksToRemove);
+                for (Block block : blocksToRemove) {
+                    score += Math.pow(2, block.getValue());
+                }
+                didIWork = true;
+            }
+            
+        }
+        return didIWork;
+    }
+    
+    /**
      * drawNextTetromino: Draws the incoming tetromino on the canvas
      *
-     * @param width:     Width Scale
-     * @param tetromino: The tetromino array
+     * @param width      : Width Scale
+     * @param tetromino  : The tetromino array
+     * @param textColor: Color of the text
      */
-    private static void drawNextTetromino(int width, Block[] tetromino) {
-        Block leftmostBlock = new Block(500, 50);
+    private static void drawNextTetromino(int width, Block[] tetromino, Color textColor, Color gridColor) {
+        Block leftmostBlock = new Block(50, 50);
         Block uppermostBlock = new Block(0, 0);
+        Block[] placeholder = new Block[tetromino.length];
         
-        for (Block block : tetromino) {
+        for (int i = 0; i < tetromino.length; i++) {
+            Block existingBlock = tetromino[i];
+            Block newBlock = new Block(existingBlock.x, existingBlock.y, existingBlock.value);
+            placeholder[i] = newBlock;
+        }
+        
+        
+        for (Block block : placeholder) {
             if (leftmostBlock.x > block.x)
                 leftmostBlock = block;
             if (uppermostBlock.y < block.y)
@@ -112,18 +142,24 @@ public class Main {
         }
         double diffXToAdd = (width + 1) - leftmostBlock.x;
         double diffYToAdd = 4 - uppermostBlock.y;
-        for (Block block : tetromino) {
+        for (Block block : placeholder) {
             block.x += diffXToAdd;
             block.y += diffYToAdd;
         }
-        for (Block block : tetromino) {
+        for (Block block : placeholder) {
             StdDraw.setPenColor(block.getColor());
             StdDraw.filledRectangle(block.x, block.y, 0.5, 0.5);
-            Font font = new Font("Arial",Font.BOLD, 30);
+            
+            String valueOnTheBlock = String.valueOf((int) Math.pow(2, block.getValue()));
+            Font font = new Font("Arial", Font.BOLD, 30);
+            StdDraw.setPenColor(textColor);
             StdDraw.setFont(font);
-            StdDraw.text(block.x,block.y,"A");
-           // StdDraw.text();
-            //TODO:StdDraw.text(sayılar);
+            StdDraw.text(block.x, block.y, valueOnTheBlock);
+            StdDraw.setPenColor(gridColor);
+            StdDraw.setPenRadius(0.01);
+            StdDraw.rectangle(block.x, block.y, 0.5, 0.5);
+            
+            
         }
     }
     
@@ -187,7 +223,7 @@ public class Main {
                     score += Math.pow(2, blockToRemove.value + 1);
                 }
                 fallDown(occupiedBlocks);
-                
+                // Checking after the fall down is there are still blocks to merge
                 canMergeFurthermore = false;
                 blocksInXPosition = new ArrayList<>();
                 for (Block occupiedBlock : occupiedBlocks)
@@ -239,14 +275,13 @@ public class Main {
     /**
      * drawMenuAndSeparator: Draws the menu and the separator.
      *
-     * @param score:          Score that the user gains
-     * @param menuColor:      Menu color
-     * @param seperatorColor: The separator color
-     * @param startX:         Start position x-axis
-     * @param height:         y-axis
+     * @param score:     Score that the user gains
+     * @param menuColor: Menu color
+     * @param startX:    Start position x-axis
+     * @param height:    y-axis
      */
     @SuppressWarnings("IntegerDivisionInFloatingPointContext")
-    private static void drawMenuAndSeperator(int score, Color menuColor, Color seperatorColor, int startX, int height) {
+    private static void drawMenuAndSeparator(int score, Color menuColor, int startX, int height) {
         StdDraw.setPenColor(menuColor);
         StdDraw.filledRectangle(startX + 2, height / 2, 2.5, height / 2 + 1);
         StdDraw.setPenColor(Color.WHITE);
@@ -263,12 +298,10 @@ public class Main {
      * @param incomingTetrominoAllRotation: Tetromino array
      */
     
-    private static void drawIncomingTetromino(Block[] incomingTetrominoAllRotation) {
+    private static void drawIncomingTetromino(Block[] incomingTetrominoAllRotation, Color numberWhite, Color numberDark) {
         for (Block block : incomingTetrominoAllRotation) {
             StdDraw.setPenColor(block.getColor());
             StdDraw.filledRectangle(block.x, block.y, 0.5, 0.5);
-            Color numberWhite = new Color(249, 246, 242);
-            Color numberDark = new Color(127, 111, 98);
             int valueOnTheBlocks = (int) Math.pow(2, block.value);
             colorOfNumberDecider(block, valueOnTheBlocks, numberWhite, numberDark);
         }
@@ -287,11 +320,6 @@ public class Main {
             Color numberWhite = new Color(249, 246, 242);
             Color numberDark = new Color(127, 111, 98);
             colorOfNumberDecider(occupiedBlock, valueOnTheBlocks, numberWhite, numberDark);
-            /*Color numberWhite = new Color(249,246,242);
-            StdDraw.setPenColor(numberWhite);
-            Font numberFont = new Font("Times New Roman", Font.BOLD, 30);
-            StdDraw.setFont(numberFont);
-            StdDraw.text(occupiedBlock.x, occupiedBlock.y, String.valueOf((int) Math.pow(2, occupiedBlock.value)));*/
             
             
         }
@@ -301,34 +329,28 @@ public class Main {
      * colorOfNumberDecider: The method decides the color of the value on the block.
      *
      * @param occupiedBlock:    The blocks after the tetrominoes has landed on the bottom or above of some block
-     * @param valueOnTheBlocks: The integer value on the blocks
-     * @param numberWhite:      White color of the appropriate numbers on canvas
-     * @param numberDark:       Dark gray color of the appropriate numbers on canvas
+     * @param value:            The integer value on the blocks
+     * @param whiteNumberColor: White color of the appropriate numbers on canvas
+     * @param darkNumberColor:  Dark gray color of the appropriate numbers on canvas
      */
-    private static void colorOfNumberDecider(Block occupiedBlock, int valueOnTheBlocks, Color numberWhite, Color numberDark) {
+    private static void colorOfNumberDecider(Block occupiedBlock, int value, Color whiteNumberColor, Color darkNumberColor) {
+        
+        // Getting font from an ttf. file for the number values
         Font clearSansFont = null;
-        if (valueOnTheBlocks == 2 || valueOnTheBlocks == 4) {  // Dark colors of the number two and four
-            StdDraw.setPenColor(numberDark);
-            
-            try {
-                clearSansFont = Font.createFont(Font.TRUETYPE_FONT,new File("ClearSans-Bold.ttf")).deriveFont(30f);
-            } catch (FontFormatException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-            ge.registerFont(clearSansFont);
-            StdDraw.setFont(clearSansFont);
-            
-            
-        } else {
-            StdDraw.setPenColor(numberWhite);
-          Font numberFont = new Font("Calibre", Font.BOLD, 30);
-            
-            StdDraw.setFont(numberFont);
+        try {
+            clearSansFont = Font.createFont(Font.TRUETYPE_FONT, new File("ClearSans-Bold.ttf")).deriveFont(25f);
+        } catch (FontFormatException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        StdDraw.text(occupiedBlock.x, occupiedBlock.y, String.valueOf(valueOnTheBlocks));
+        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        ge.registerFont(clearSansFont);
+        
+        StdDraw.setFont(clearSansFont);
+        StdDraw.setPenColor(value <= 4 ? darkNumberColor : whiteNumberColor);
+        
+        StdDraw.text(occupiedBlock.x, occupiedBlock.y, String.valueOf(value));
     }
     
     /**
@@ -339,12 +361,19 @@ public class Main {
      * @param gridColor:   Grid color
      */
     
-    private static void drawGrid(int heightScale, int widthScale, Color gridColor) {
+    private static void drawGrid(int heightScale, int widthScale, Color gridColor, Color frameColor) {
+        
         StdDraw.setPenColor(gridColor); // Draws the grid
-        for (double x = -0.5; x <= widthScale - 0.5; x++)    // vertical lines
+        StdDraw.setPenRadius(0.005);
+        for (double x = -0.5; x <= widthScale - 0.5; x++)    // Vertical lines
             StdDraw.line(x, -0.5, x, heightScale - 0.5);
-        for (double y = -0.5; y <= heightScale - 0.5; y++)     // horizontal lines
+        for (double y = -0.5; y <= heightScale - 0.5; y++)     // Horizontal lines
             StdDraw.line(-0.5, y, widthScale - 0.5, y);
+        StdDraw.setPenColor(frameColor);
+        StdDraw.setPenRadius(0.015); // Sets the radius of the rectangle
+        // Draws the frame
+        StdDraw.rectangle((widthScale >> 1) - 0.51, heightScale / 2 - 0.51, widthScale / 2, heightScale / 2);
+        
         
     }
     
@@ -365,7 +394,7 @@ public class Main {
         int yAmountToAdd = (heightScale - lowestPoint.y);
         for (Block[] blocks : incomingTetrominoeAllRotations) {
             for (Block block : blocks) {
-                if(!block.A)
+                if (!block.A)
                     block.x += 2;
                 block.A = true;
                 block.y += yAmountToAdd;
@@ -405,19 +434,25 @@ public class Main {
             }
             case 'q': {
                 Block leftmostBlock = new Block(100, 100), rightmostBlock = new Block(0, 0);
-                for (Block block : incomingTetrominoeAllRotations[rotationIndex]) {
-                    if (leftmostBlock.x > block.x)
-                        leftmostBlock = block;
-                    else if (rightmostBlock.x < block.x)
-                        rightmostBlock = block;
-                }
                 if (rotationIndex == 0) {
+                    for (Block block : incomingTetrominoeAllRotations[3]) {
+                        if (leftmostBlock.x > block.x)
+                            leftmostBlock = block;
+                        else if (rightmostBlock.x < block.x)
+                            rightmostBlock = block;
+                    }
                     for (Block block : incomingTetrominoeAllRotations[3])
                         for (Block occupiedBlock : occupiedBlocks)
                             if (block.x == occupiedBlock.x & block.y == occupiedBlock.y)
                                 return 0;
                     return (leftmostBlock.x >= 0) & (rightmostBlock.x <= widthScale) ? 3 : 0;
                 } else {
+                    for (Block block : incomingTetrominoeAllRotations[rotationIndex - 1]) {
+                        if (leftmostBlock.x > block.x)
+                            leftmostBlock = block;
+                        else if (rightmostBlock.x < block.x)
+                            rightmostBlock = block;
+                    }
                     for (Block block : incomingTetrominoeAllRotations[rotationIndex - 1])
                         for (Block occupiedBlock : occupiedBlocks)
                             if (block.x == occupiedBlock.x & block.y == occupiedBlock.y)
@@ -427,19 +462,26 @@ public class Main {
             }
             case 'e': {
                 Block leftmostBlock = new Block(100, 100), rightmostBlock = new Block(0, 0);
-                for (Block block : incomingTetrominoeAllRotations[rotationIndex]) {
-                    if (leftmostBlock.x > block.x)
-                        leftmostBlock = block;
-                    else if (rightmostBlock.x < block.x)
-                        rightmostBlock = block;
-                }
+                
                 if (rotationIndex == 3) {
+                    for (Block block : incomingTetrominoeAllRotations[0]) {
+                        if (leftmostBlock.x > block.x)
+                            leftmostBlock = block;
+                        else if (rightmostBlock.x < block.x)
+                            rightmostBlock = block;
+                    }
                     for (Block block : incomingTetrominoeAllRotations[0])
                         for (Block occupiedBlock : occupiedBlocks)
                             if (block.x == occupiedBlock.x & block.y == occupiedBlock.y)
                                 return 3;
                     return (leftmostBlock.x >= 0) & (rightmostBlock.x <= widthScale) ? 0 : 3;
                 } else {
+                    for (Block block : incomingTetrominoeAllRotations[rotationIndex + 1]) {
+                        if (leftmostBlock.x > block.x)
+                            leftmostBlock = block;
+                        else if (rightmostBlock.x < block.x)
+                            rightmostBlock = block;
+                    }
                     for (Block block : incomingTetrominoeAllRotations[rotationIndex + 1])
                         for (Block occupiedBlock : occupiedBlocks)
                             if (block.x == occupiedBlock.x & block.y == occupiedBlock.y)
@@ -547,12 +589,14 @@ public class Main {
      * @param occupiedBlocks:               Occupied Blocks
      * @param incomingTetrominoAllRotation: Incoming tetromino
      */
-    private static void saveOccupiedBlocks(List<Block> occupiedBlocks, Block[] incomingTetrominoAllRotation) {
+    private static boolean saveOccupiedBlocksAndDecideTheFateOfTheGame(List<Block> occupiedBlocks, Block[] incomingTetrominoAllRotation, int heightScale) {
         for (Block block : incomingTetrominoAllRotation) {
             Block pos = new Block(block.x, block.y, block.value);
             occupiedBlocks.add(pos);
+            if (pos.y > heightScale)
+                return false;
         }
-        
+        return true;
     }
     
     /**
@@ -601,7 +645,7 @@ public class Main {
             if (lowestPoint.y > block.y)
                 lowestPoint = block;
         }
-        return lowestPoint.y <= 0; // TODO: ???????
+        return lowestPoint.y <= 0;
     }
     
     
