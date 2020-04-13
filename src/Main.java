@@ -9,8 +9,10 @@ import javax.swing.*;
 
 
 /**
- * @author Cem Uğurlu, Uras Felamur
- * @date 13.04.2020
+ *  MEF University COMP204 Programming Studio
+ * @author Cem Uğurlu 041901065
+ * @author Uras Felamur 041901059
+ * @since 19.03.2020
  * Project Name: Tetris 2048
  * Description: A game that merges Tetris and 2048 with using StdDraw.
  */
@@ -56,9 +58,7 @@ public class Main {
             
             
             drawOccupiedBlocks(occupiedBlocks);
-            
             drawIncomingTetromino(incomingTetrominoAllRotations[rotationIndex], whiteNumberColor, darkNumberColor);
-            
             drawGrid(heightScale, widthScale, gridColor, frameColor);
             drawMenuAndSeparator(score, menuColor, widthScale, heightScale);
             drawNextTetromino(widthScale, Tetrominoes.tetrominoes[minoeGenerator.getIncomingShapeIndex()][minoeGenerator.getIncomingRotationIndex()], darkNumberColor, gridColor);
@@ -76,44 +76,18 @@ public class Main {
             
             StdDraw.show();
             
-            StdDraw.pause(300); // pause for 300 ms (double buffering)
+            StdDraw.pause(700); // pause for 300 ms (double buffering)
             
             if (!playing) { // If playing is not available, it will prompt the message
                 JOptionPane.showMessageDialog(null,
                         "GAME OVER",
-                        "Warning",
+                        "Tetris2048",
                         JOptionPane.INFORMATION_MESSAGE);
             }
             
         }
     }
     
-    /**
-     * checkAndDeleteFullRows: Checks and deletes the rows
-     *
-     * @param occupiedBlocks: The blocks after the tetrominoes has landed on the bottom or above of some block
-     */
-    private static boolean checkAndDeleteFullRows(List<Block> occupiedBlocks, int widthScale, int heightScale, int score) {
-        boolean didIWork = false;
-        for (int y = 0; y < heightScale; y++) {
-            List<Block> blocksToRemove = new ArrayList<>();
-            for (int x = 0; x < widthScale; x++)
-                for (Block occupiedBlock : occupiedBlocks)
-                    if (occupiedBlock.y == y) {
-                        blocksToRemove.add(occupiedBlock);
-                    }
-            
-            if (blocksToRemove.size() == widthScale) {
-                occupiedBlocks.removeAll(blocksToRemove);
-                for (Block block : blocksToRemove) {
-                    score += Math.pow(2, block.getValue());
-                }
-                didIWork = true;
-            }
-            
-        }
-        return didIWork;
-    }
     
     /**
      * drawNextTetromino: Draws the incoming tetromino on the canvas
@@ -375,6 +349,33 @@ public class Main {
         StdDraw.rectangle((widthScale >> 1) - 0.51, heightScale / 2 - 0.51, widthScale / 2, heightScale / 2);
         
         
+    }
+    
+    /**
+     * checkAndDeleteFullRows: Checks and deletes the rows
+     *
+     * @param occupiedBlocks: The blocks after the tetrominoes has landed on the bottom or above of some block
+     */
+    private static boolean checkAndDeleteFullRows(List<Block> occupiedBlocks, int widthScale, int heightScale, int score) {
+        boolean didIWork = false;
+        for (int y = 0; y < heightScale; y++) {
+            List<Block> blocksToRemove = new ArrayList<>();
+            for (int x = 0; x < widthScale; x++)
+                for (Block occupiedBlock : occupiedBlocks)
+                    if (occupiedBlock.y == y) {
+                        blocksToRemove.add(occupiedBlock);
+                    }
+            
+            if (blocksToRemove.size() == widthScale) {
+                occupiedBlocks.removeAll(blocksToRemove);
+                for (Block block : blocksToRemove) {
+                    score += Math.pow(2, block.getValue());
+                }
+                didIWork = true;
+            }
+            
+        }
+        return didIWork;
     }
     
     /**
@@ -661,7 +662,6 @@ public class Main {
         StdDraw.setXscale(-0.5, widthScale + 4.5);
         StdDraw.setYscale(-0.5, heightScale - 0.5);
         // double buffering is used for speeding up drawing needed to enable computer animations
-        // check https://introcs.cs.princeton.edu/java/stdlib/javadoc/StdDraw.html for details
         StdDraw.enableDoubleBuffering();
         
         
