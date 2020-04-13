@@ -12,7 +12,7 @@ import javax.swing.*;
  * @author Cem Uğurlu, Uras Felamur
  * @date 13.04.2020
  * Project Name: Tetris 2048
- * Description: A game that mergence of Tetris and 2048 with using StdDraw.
+ * Description: A game that merges Tetris and 2048 with using StdDraw.
  */
 public class Main {
     public static void main(String[] args) {
@@ -76,7 +76,7 @@ public class Main {
             
             StdDraw.show();
             
-            StdDraw.pause(100); // pause for 200 ms (double buffering)
+            StdDraw.pause(300); // pause for 300 ms (double buffering)
             
             if (!playing) { // If playing is not available, it will prompt the message
                 JOptionPane.showMessageDialog(null,
